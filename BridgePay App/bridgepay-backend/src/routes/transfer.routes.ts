@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { confirmTransfer, createQuote, getConfig, getTransfer, listTransfers } from "../controllers/transfer.controller";
+import { requireAuth } from "../middleware/auth";
+import { asyncHandler } from "../middleware/errors";
+const router = Router();
+router.get("/config", asyncHandler(getConfig));
+router.use(requireAuth);
+router.post("/quote", asyncHandler(createQuote));
+router.post("/confirm", asyncHandler(confirmTransfer));
+router.get("/", asyncHandler(listTransfers));
+router.get("/:id", asyncHandler(getTransfer));
+export default router;

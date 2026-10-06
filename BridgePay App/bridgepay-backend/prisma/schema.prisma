@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+enum Currency {
+  JPY
+  USD
+  EUR
+  GBP
+  INR
+}
+enum TransferStatus {
+  CREATED
+  QUOTE_ISSUED
+  PAYMENT_PENDING
+  PAYMENT_RECEIVED
+  COMPLIANCE_CHECK
+  PROCESSING
+  SENT
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+enum TransferEventType {
+  CREATED
+  STATUS_CHANGED
+  PAYMENT_RECEIVED
+  PROVIDER_UPDATE
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id             String      @id @default(cuid())
+  name           String?
+  email          String      @unique
+  mobile         String?
+  passwordHash   String
+  emailVerified  Boolean     @default(false)
+  mobileVerified Boolean     @default(false)
+  role           UserRole    @default(USER)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  recipients     Recipient[]
+  quotes         Quote[]
+  transfers      Transfer[]
+}
+
+model Recipient {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  currency       Currency
+  bankName       String
+  accountNumber  String
+  bankCode       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transfers      Transfer[]
+  @@index([userId, createdAt])
+}
+
+model Quote {
+  id             String   @id @default(cuid())
+  userId         String
+  fromCurrency   Currency
+  toCurrency     Currency
+  amount         Decimal  @db.Decimal(18, 2)
+  rate           Decimal  @db.Decimal(18, 8)
+  platformFee    Decimal  @db.Decimal(18, 2)
+  bankFee        Decimal  @db.Decimal(18, 2)
+  promoDiscount  Decimal  @db.Decimal(18, 2)
+  totalCost      Decimal  @db.Decimal(18, 2)
+  receiveAmount  Decimal  @db.Decimal(18, 2)
+  fromBank       String
+  toBank         String
+  recipientName  String
+  recipientAccount String
+  recipientCode  String
+  promo          Boolean  @default(false)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transfer       Transfer?
+  @@index([userId, createdAt])
+}
+
+model Transfer {
+  id               String         @id @default(cuid())
+  userId           String
+  quoteId          String         @unique
+  recipientId      String?
+  status            TransferStatus @default(PAYMENT_PENDING)
+  idempotencyKey    String
+  saveRecipient    Boolean        @default(false)
+  providerReference String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  completedAt       DateTime?
+  user              User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  quote             Quote          @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  recipient         Recipient?     @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+  events            TransferEvent[]
+  @@index([userId, createdAt])
+  @@index([status])
+  @@unique([userId, idempotencyKey])
+}
+
+model TransferEvent {
+  id          String           @id @default(cuid())
+  transferId  String
+  type        TransferEventType
+  fromStatus  TransferStatus?
+  toStatus    TransferStatus?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  transfer    Transfer         @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  @@index([transferId, createdAt])
+}
