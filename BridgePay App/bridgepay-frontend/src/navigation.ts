@@ -1,0 +1,24 @@
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+export type Routes = {
+  Splash: undefined;
+  Welcome: undefined;
+  Signup: undefined;
+  Login: undefined;
+  Verify: undefined;
+  Home: undefined;
+  Send: undefined;
+  Recipient: undefined;
+  Review: undefined;
+  Success: { id: string };
+  Rates: undefined;
+  History: undefined;
+  TransferDetail: { id: string };
+  Menu: undefined;
+  Profile: undefined;
+  Settings: undefined;
+  Help: undefined;
+  About: undefined;
+  Identity: undefined;
+};
+export const useNav = () => useNavigation<NativeStackNavigationProp<Routes>>();
